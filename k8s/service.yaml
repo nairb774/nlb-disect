@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service
+  namespace: attempt1
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz/ready
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8080"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "6"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: deregistration_delay.timeout_seconds=300,deregistration_delay.connection_termination.enabled=true
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb-ip
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  - name: tcp
+    port: 9090
+    protocol: TCP
+    targetPort: tcp
+  selector:
+    app: service
+  sessionAffinity: None
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service
+  namespace: attempt1
+spec:
+  replicas: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: service
+  template:
+    metadata:
+      labels:
+        app: service
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 900
+      containers:
+      - name: service
+        image: ko://github.com/nairb774/nlb-disect/service
+        ports:
+          - name: http
+            containerPort: 8080
+          - name: tcp
+            containerPort: 9090
+        resources:
+          requests:
+            cpu: 125m
+            memory: 128Mi

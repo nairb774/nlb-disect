@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: attempt1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+      - name: client
+        image: ko://github.com/nairb774/nlb-disect/client
+        args:
+          - -endpoint=lalala.elb.us-west-1.amazonaws.com:9090
+        resources:
+          requests:
+            cpu: 125m
+            memory: 128Mi
+
